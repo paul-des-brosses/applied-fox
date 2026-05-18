@@ -1,0 +1,88 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "applied-fox-agent-ia"
+version = "0.1.0"
+description = "Local multi-agent technology watch system for engineering projects"
+license = { text = "MIT" }
+readme = "README.md"
+requires-python = ">=3.11"
+
+# Dépendances figées au Jalon 0 — mettre à jour explicitement, ne pas auto-bumper.
+# Versions LangChain/LangGraph évoluent vite : toujours aligner langchain-core et
+# langchain-ollama avec langgraph. En cas de doute, voir docs/DEPENDENCIES.md.
+dependencies = [
+    # --- Orchestration multi-agent ---
+    "langgraph>=0.2",
+    "langchain-core>=0.3",
+
+    # --- Provider local (Ollama) ---
+    "langchain-ollama>=0.2",
+
+    # --- Validation des schémas ---
+    "pydantic>=2.5",
+
+    # --- Configuration ---
+    "pyyaml>=6.0",
+    "python-dotenv>=1.0",
+
+    # --- TUI ---
+    "rich>=13",
+    "typer>=0.9",
+
+    # --- Rendu HTML du rapport ---
+    "mistune>=3.0",
+
+    # --- Cache requêtes API (sources de veille) ---
+    "requests-cache>=1.1",
+    "requests>=2.31",
+
+    # --- Sources de veille MVP ---
+    # praw retiré : utilisation des endpoints JSON publics Reddit (pas d'auth requis).
+    # Cf. src/sources/reddit.py — décision Jalon 3 suite restriction API Reddit fin 2025.
+    "PyGithub>=2.1",       # GitHub
+    "feedparser>=6.0",     # RSS
+    # Client Nexar/Octopart : V2 backlog (voir docs/BACKLOG.md)
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4",
+    "pytest-cov",
+    "pytest-mock",
+    "ruff>=0.1",
+    "mypy>=1.8",
+]
+
+# Observabilité optionnelle (dev uniquement — voir docs/CONFIG_SCHEMA.md)
+observability = [
+    "langfuse",
+]
+
+# Providers API cloud — V2 backlog, non installés au MVP
+# Voir docs/BACKLOG.md Niveau 2 — Modes hybrid et full_api
+multi_provider = [
+    "langchain-anthropic",
+    "langchain-openai",
+    "langchain-mistralai",
+    "langchain-groq",
+]
+
+[project.scripts]
+applied-fox = "src.cli:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]

@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Secrets — ne jamais commiter
+.env
+*.env
+
+# Cache et state local (spécifique à la machine, pas au repo)
+.cache/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# macOS
+.DS_Store
+
+# Pytest
+.pytest_cache/
+htmlcov/
+.coverage
+
+# LangSmith / LangFuse traces locales
+langchain_traces/
+
+# Rapports générés localement (trop volumineux, trop personnels)
+# Les artefacts de la démo statique sont commités explicitement dans projects/runs/
+~/.applied-fox/
+
+# Logs d'exécution locaux
+runs_log/
+
+# Claude Code — mémoire et worktrees locaux, spécifiques à la machine
+.claude/
