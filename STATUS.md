@@ -5,7 +5,7 @@
 ## Current state
 
 **MVP+ shipped and functional.** Milestones 1 through 8 are delivered, plus
-the post-MVP v1.5 iteration (deterministic Judge filters — see
+the post-MVP v1.5 iteration (deterministic Judge filters, see
 [`docs/evaluations/post_mvp_filtres_juge_2026-05-13.md`](docs/evaluations/post_mvp_filtres_juge_2026-05-13.md)).
 The full chain works end-to-end on a local machine: interview → 4-agent
 pipeline → HTML report → human validation → controlled integration into the
