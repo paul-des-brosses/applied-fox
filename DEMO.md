@@ -15,7 +15,7 @@
 
 ```bash
 git clone <repo-url>
-cd applied-fox-agent-ia
+cd applied-fox
 bash setup.sh                  # venv + deps + Ollama check + LLM model pulls
 source .venv/bin/activate      # Windows: .venv\Scripts\activate
 pip install -e .
@@ -53,7 +53,7 @@ the repo:
 ```bash
 # Option A: point to the example file in the repo
 # Edit ~/.applied-fox/config.yaml to add:
-#   paths.projects_dir: /absolute/path/to/applied-fox-agent-ia/projects
+#   paths.projects_dir: /absolute/path/to/applied-fox/projects
 
 # Option B: create a new project file via the TUI
 # (from the menu, type 'n' then follow the questionnaire ~5 min)

@@ -173,7 +173,7 @@ Ces dépendances **ne sont pas installées au MVP**, mais elles sont mentionnée
 
 ```toml
 [project]
-name = "applied-fox-agent-ia"
+name = "applied-fox"
 version = "0.1.0"
 requires-python = ">=3.11"
 

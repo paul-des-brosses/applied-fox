@@ -53,7 +53,7 @@ DEFAULT_SUBREDDITS = [
 # Headers requis par Reddit pour les endpoints publics.
 # Ils exigent un User-Agent non-vide pour ne pas bloquer les requêtes.
 _HEADERS = {
-    "User-Agent": "applied-fox-agent-ia/0.1 (portfolio project, read-only)",
+    "User-Agent": "applied-fox/0.1 (portfolio project, read-only)",
     "Accept": "application/json",
 }
 
@@ -126,7 +126,7 @@ def search(
     min_score: int = 5,
     max_age_days: int = 365,
     limit: int = 25,
-    user_agent: str = "applied-fox-agent-ia/0.1",  # conservé pour compatibilité signature
+    user_agent: str = "applied-fox/0.1",  # conservé pour compatibilité signature
     cache_dir: Optional[Path] = None,
     cache_ttl_hours: int = 12,
     component_hint: str = "",

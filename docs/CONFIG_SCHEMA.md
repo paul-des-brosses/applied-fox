@@ -35,7 +35,7 @@ sources:
     enabled: true
     client_id_env: REDDIT_CLIENT_ID
     client_secret_env: REDDIT_CLIENT_SECRET
-    user_agent: "applied-fox-agent-ia/0.1 by /u/[username]"
+    user_agent: "applied-fox/0.1 by /u/[username]"
     cache_ttl_hours: 12
     filters:
       min_score: 5             # score minimum pour passer le filtre déterministe
@@ -350,7 +350,7 @@ sources:
     enabled: true
     client_id_env: REDDIT_CLIENT_ID
     client_secret_env: REDDIT_CLIENT_SECRET
-    user_agent: "applied-fox-agent-ia/0.1 by /u/exemple"
+    user_agent: "applied-fox/0.1 by /u/exemple"
     cache_ttl_hours: 12
     filters:
       min_score: 10
@@ -399,7 +399,7 @@ sources:
     enabled: true
     client_id_env: REDDIT_CLIENT_ID
     client_secret_env: REDDIT_CLIENT_SECRET
-    user_agent: "applied-fox-agent-ia/0.1 by /u/exemple"
+    user_agent: "applied-fox/0.1 by /u/exemple"
     cache_ttl_hours: 12
     filters:
       min_score: 5
@@ -454,7 +454,7 @@ sources:
     enabled: false           # nécessite client_id / secret
     client_id_env: REDDIT_CLIENT_ID
     client_secret_env: REDDIT_CLIENT_SECRET
-    user_agent: "applied-fox-agent-ia/0.1"
+    user_agent: "applied-fox/0.1"
   github:
     enabled: false           # nécessite GITHUB_TOKEN
     token_env: GITHUB_TOKEN

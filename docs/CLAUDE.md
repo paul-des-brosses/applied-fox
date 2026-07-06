@@ -120,7 +120,7 @@ Quelques règles dures héritées de [`DECISIONS.md`](DECISIONS.md) :
 ## Règle 6 — Structure du repo à respecter
 
 ```
-applied-fox-agent-ia/
+applied-fox/
 ├── docs/
 │   ├── VISION.md
 │   ├── DECISIONS.md

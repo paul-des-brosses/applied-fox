@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "applied-fox-agent-ia"
+name = "applied-fox"
 version = "0.1.0"
 description = "Local multi-agent technology watch system for engineering projects"
 license = { text = "MIT" }

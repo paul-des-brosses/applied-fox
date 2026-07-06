@@ -947,7 +947,7 @@ def run(
                     min_score=int(reddit_filters.get("min_score", 5)),
                     max_age_days=int(reddit_filters.get("max_age_days", 365)),
                     limit=int(reddit_cfg.get("limit_per_query", 15)),
-                    user_agent=reddit_cfg.get("user_agent", "applied-fox-agent-ia/0.1"),
+                    user_agent=reddit_cfg.get("user_agent", "applied-fox/0.1"),
                     cache_dir=cache_dir,
                     cache_ttl_hours=int(reddit_cfg.get("cache_ttl_hours", 12)),
                     component_hint=hint,

@@ -157,7 +157,7 @@ sources:
     enabled: false
     client_id_env: REDDIT_CLIENT_ID
     client_secret_env: REDDIT_CLIENT_SECRET
-    user_agent: "applied-fox-agent-ia/0.1"
+    user_agent: "applied-fox/0.1"
     cache_ttl_hours: 12
     filters:
       min_score: 5

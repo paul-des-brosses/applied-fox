@@ -15,7 +15,7 @@
 ```bash
 # 1. Clone the repo
 git clone <repo-url>
-cd applied-fox-agent-ia
+cd applied-fox
 
 # 2. Auto-setup: venv + dependencies + Ollama check + model download
 bash setup.sh
