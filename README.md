@@ -8,9 +8,9 @@ A local multi-agent technology watch system for engineering projects.
 Everything runs locally via Ollama. No project data ever leaves your machine,
 and no agent modifies a project file without explicit human validation.
 
-> *(This README is in English for a wider reach. Core technical docs —
-> [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) and
-> [`docs/DECISIONS.md`](docs/DECISIONS.md) — are in English too. The rest of
+> *(This README is in English for a wider reach. Core technical docs
+> ([`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) and
+> [`docs/DECISIONS.md`](docs/DECISIONS.md)) are in English too. The rest of
 > `docs/` (roadmap, evaluation reports, schemas) is in French for now, kept
 > as the original technical archive.)*
 
@@ -25,7 +25,7 @@ and no agent modifies a project file without explicit human validation.
    a cheaper alternative component, an obsolescence alert, field feedback
    on your chipset, and so on.
 3. You receive an HTML report with 3-8 prioritized suggestions (sometimes 0
-   when the signal is weak this week — the report says so honestly).
+   when the signal is weak this week; the report says so plainly).
    You validate the ones you care about. The tool updates your project file
    under your control.
 
@@ -143,19 +143,16 @@ Full details: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 | Aider / Cursor | ⚠️ code only | ⚠️ partial | ✅ | ❌ |
 | Devin / autonomous agents | ⚠️ goal-driven | ❌ | ❌ | ❌ |
 
-Applied Fox occupies a precise niche: **structured R&D watch, local,
-under human control**, for long-running projects where context knowledge
-is the main investment.
+Applied Fox occupies a precise niche: structured R&D watch that is local and under human control, for long-running projects where context knowledge is the main investment.
 
 ## Required models
 
-Applied Fox uses **two Ollama models**, each adapted to its agent's
-complexity:
+Applied Fox uses two Ollama models, each adapted to its agent's complexity:
 
 | Agent | Model | Why |
 |---|---|---|
 | Interviewer, Integrator, Reporter | `mistral:7b-instruct-q4_K_M` (4.4 GB) | Mechanical tasks (dialogue, integration, synthesis) |
-| **Judge** | `qwen3:8B` (5.0 GB) | **Meta-reasoning**: tell apart a truly relevant finding from one that only looks like the project. The 7B fails here. |
+| Judge | `qwen3:8B` (5.0 GB) | Meta-reasoning: distinguish truly relevant findings from those that only superficially resemble the project. The 7B model fails here. |
 
 ```bash
 ollama pull mistral:7b-instruct-q4_K_M
@@ -167,7 +164,7 @@ Total disk: ~10 GB.
 The Interview module **always** runs on local 7B
 (fundamental constraint, see [`docs/DECISIONS.md`](docs/DECISIONS.md)).
 
-**To adapt to other hardware** (CPU only, larger GPU, etc.):
+To adapt to other hardware (CPU only, larger GPU, etc.),
 see [`docs/HARDWARE.md`](docs/HARDWARE.md) (FR).
 
 Observed measurements (RTX 3070 8 GB, post-MVP v1.5):
@@ -197,19 +194,18 @@ deterministic filters that short-circuit ~70 % of LLM calls in pre-processing.
 > Public-facing README, GETTING_STARTED, DEMO, VISION, plus ARCHITECTURE
 > and DECISIONS, are in English.
 
-## Philosophy — four non-negotiable constraints
+## Philosophy: four non-negotiable constraints
 
 1. **Local by default, everywhere.** The Interview module is local-only.
    The watch agents run locally. No silent network call, no telemetry,
    no server-side cache.
 2. **Hot-swappable LLM.** Every call goes through `get_llm(role, config)`.
-   No direct provider import in the agents. Model swap is a one-line
-   config change.
+   Agents never import providers directly. Swapping models requires only a one-line config change.
 3. **Hardware-adaptable.** One model per agent, sized for its task
    (hot-swap via config). See [`docs/HARDWARE.md`](docs/HARDWARE.md) (FR).
 4. **Strict `.md` format.** The project file is validated by three
-   symmetric layers. The user remains the final arbiter: no agent
-   modifies the file without explicit human validation.
+   symmetric layers. The user always remains the final arbiter: agents never
+   modify the file without explicit human validation.
 
 ## Tech stack
 
@@ -237,6 +233,6 @@ This repository is part of a public portfolio at the intersection of hardware, s
 
 M1 ESILV portfolio project (2025-2026). Code under MIT license.
 
-Post-MVP evolution is tracked in [`docs/BACKLOG.md`](docs/BACKLOG.md) (FR):
-asyncio parallelization, opt-in cloud mode, multi-project batch, Octopart
-integration for supply-chain, daemon for permanent watch.
+Post-MVP evolution is tracked in [`docs/BACKLOG.md`](docs/BACKLOG.md) (FR),
+including asyncio parallelization, opt-in cloud mode, multi-project batch, Octopart
+integration for supply-chain, and daemon for permanent watch.
