@@ -1,21 +1,21 @@
 # ARCHITECTURE — Applied Fox
 
-Ce document décrit l'architecture complète du système : couches, modules, schémas de données, flux, structure de fichiers. Il est cohérent avec [`DECISIONS.md`](DECISIONS.md) et [`ROADMAP_MVP.md`](ROADMAP_MVP.md). Les termes techniques sont vulgarisés dans [`GLOSSARY.md`](GLOSSARY.md).
+This document describes the complete system architecture: layers, modules, data schemas, flows, file structure. It is consistent with [`DECISIONS.md`](DECISIONS.md) and [`ROADMAP_MVP.md`](ROADMAP_MVP.md). Technical terms are explained in plain language in [`GLOSSARY.md`](GLOSSARY.md).
 
 ---
 
-## Vue d'ensemble
+## Overview
 
-Applied Fox se structure en deux moitiés complémentaires :
+Applied Fox is structured in two complementary halves:
 
-1. **L'Interviewer** dialogue avec l'utilisateur pour produire (mode `create`) ou mettre à jour (mode `update` ou `integrate`) une **fiche projet** au format Markdown strict. Cette fiche est l'artefact central, partagé par tous les agents en aval. Elle est validée à trois couches.
-2. **Le pipeline de veille** est un graphe LangGraph qui enchaîne quatre agents spécialisés (Éclaireur → Intégrateur → Juge → Rapporteur). Il prend la fiche projet en entrée et produit un rapport `.md`/HTML en sortie, accompagné d'objets `ValidatedSuggestion` qui sont ensuite réinjectés dans l'Interviewer pour modifier la fiche.
+1. **The Interviewer** dialogues with the user to produce (`create` mode) or update (`update` or `integrate` mode) a **project sheet** in strict Markdown format. This sheet is the central artifact, shared by all downstream agents. It is validated through three layers.
+2. **The tech-watch pipeline** is a LangGraph graph chaining four specialized agents (Éclaireur → Intégrateur → Juge → Rapporteur — Scout / Integrator / Judge / Reporter). It takes the project sheet as input and produces a `.md`/HTML report as output, along with `ValidatedSuggestion` objects that are then fed back into the Interviewer to modify the sheet.
 
-L'ensemble tourne en local. Le module Interview est exclusivement local — contrainte fondamentale. En V2, un mode `hybrid` permettra aux agents de veille de router vers un provider cloud sur choix explicite, l'Interview restant toujours local.
+Everything runs locally. The Interview module is exclusively local — a fundamental constraint. In V2, a `hybrid` mode will allow the tech-watch agents to route to a cloud provider by explicit choice, with the Interview always remaining local.
 
 ---
 
-## Diagramme principal
+## Main diagram
 
 ```mermaid
 flowchart TD
@@ -92,125 +92,125 @@ flowchart TD
 
 ---
 
-## Séparation en trois couches
+## Separation into three layers
 
-L'architecture sépare strictement trois préoccupations. Cette séparation est clé pour la maintenabilité, le hot-swap, et l'extensibilité.
+The architecture strictly separates three concerns. This separation is key for maintainability, hot-swap, and extensibility.
 
-### Couche Agents (`src/agents/`)
+### Agents layer (`src/agents/`)
 
-Code des cinq agents : `interviewer.py`, `eclaireur.py`, `integrateur.py`, `juge.py`, `rapporteur.py`. Chaque agent est un module Python qui :
-- Reçoit un input typé (Pydantic).
-- Construit son prompt système et utilisateur.
-- Appelle un LLM via `get_llm(role, config)`.
-- Parse la sortie en JSON Pydantic, avec retry en cas d'erreur.
-- Renvoie un output typé.
+Code for the five agents: `interviewer.py`, `eclaireur.py`, `integrateur.py`, `juge.py`, `rapporteur.py`. Each agent is a Python module that:
+- Receives a typed input (Pydantic).
+- Builds its system and user prompts.
+- Calls an LLM via `get_llm(role, config)`.
+- Parses the output into Pydantic JSON, with retry on error.
+- Returns a typed output.
 
-Les agents ne savent pas quel modèle ni quel provider tourne derrière. C'est ce qui permet le hot-swap.
+Agents do not know which model or which provider runs behind them. This is what enables hot-swap.
 
-### Couche Providers (`src/llm/`)
+### Providers layer (`src/llm/`)
 
-Une seule fonction publique : `get_llm(role: str, config: dict) -> BaseChatModel`.
+A single public function: `get_llm(role: str, config: dict) -> BaseChatModel`.
 
-Au MVP, cette fonction route vers Ollama uniquement (modèle dépendant du `role` et du `profile` machine). En V2, elle pourra router vers Anthropic, OpenAI, Mistral, Groq selon la config.
+In the MVP, this function routes to Ollama only (model depending on the `role` and the machine `profile`). In V2, it will be able to route to Anthropic, OpenAI, Mistral, Groq depending on the config.
 
-**Principe** : un changement de modèle ou de provider se fait dans la config, pas dans le code des agents.
+**Principle**: a model or provider change happens in the config, not in the agents' code.
 
-**Contrainte** : pour le rôle `interviewer`, `get_llm` retourne toujours un modèle local Ollama. Cette contrainte est fondamentale et non levée en V2 — l'Interview ne quitte pas la machine.
+**Constraint**: for the `interviewer` role, `get_llm` always returns a local Ollama model. This constraint is fundamental and is not lifted in V2 — the Interview never leaves the machine.
 
-### Couche Sources (`src/sources/`)
+### Sources layer (`src/sources/`)
 
-Un fichier par source au MVP : `reddit.py`, `github.py`, `rss.py` (+ `common.py` pour le cache HTTP partagé). Octopart est en V2 backlog. Chaque module expose une interface unique :
+One file per source in the MVP: `reddit.py`, `github.py`, `rss.py` (+ `common.py` for the shared HTTP cache). Octopart is in the V2 backlog. Each module exposes a single interface:
 
 ```python
 def search(query: SourceQuery) -> list[RawFinding]:
     ...
 ```
 
-Avec un cache `requests-cache` partagé (TTL configuré par source, cf. [`CONFIG_SCHEMA.md`](CONFIG_SCHEMA.md)). Les modules sources sont indépendants : si Reddit est down, le système continue avec les autres.
+With a shared `requests-cache` (TTL configured per source, see [`CONFIG_SCHEMA.md`](CONFIG_SCHEMA.md)). Source modules are independent: if Reddit is down, the system continues with the others.
 
 ---
 
-## Description module par module
+## Module-by-module description
 
 ### Interviewer (`src/agents/interviewer.py`)
 
-**Rôle** : seul module qui peut créer ou modifier un `.md` projet valide.
+**Role**: the only module that can create or modify a valid project `.md`.
 
-**Modes** :
-- `create` : questionnaire guidé section par section. Pour chaque section, l'agent pose une série de questions, re-questionne si la réponse est floue (Option A pure du Bloc 7 — pas de mode conversationnel libre).
-- `update` : charge un `.md` existant, propose des révisions ciblées (changement de phase, nouveaux composants, etc.).
-- `integrate` : reçoit un objet `ValidatedSuggestion` après qu'une suggestion du rapport a été validée. Dialogue minimal pour clarifier les `open_questions`. Modifie la fiche en conséquence.
+**Modes**:
+- `create`: guided questionnaire, section by section. For each section, the agent asks a series of questions, and asks again if the answer is vague (pure Option A from Block 7 — no free-form conversational mode).
+- `update`: loads an existing `.md`, proposes targeted revisions (phase change, new components, etc.).
+- `integrate`: receives a `ValidatedSuggestion` object after a suggestion from the report has been validated. Minimal dialogue to clarify the `open_questions`. Modifies the sheet accordingly.
 
-**Entrées** :
-- Mode `create` : aucune entrée, démarre du vide.
-- Mode `update` : chemin vers un `.md` existant.
-- Mode `integrate` : chemin vers le `.md` + objet `ValidatedSuggestion`.
+**Inputs**:
+- `create` mode: no input, starts from scratch.
+- `update` mode: path to an existing `.md`.
+- `integrate` mode: path to the `.md` + `ValidatedSuggestion` object.
 
-**Sortie** : un `.md` modifié, qui passe les trois couches de validation avant d'être écrit sur disque.
+**Output**: a modified `.md`, which passes the three validation layers before being written to disk.
 
-**LLM utilisé** : Ollama local, modèle 7B Q4. Le comportement est contrôlé par `get_llm("interviewer", config)` — toujours local, sans exception.
+**LLM used**: local Ollama, 7B Q4 model. Behavior is controlled by `get_llm("interviewer", config)` — always local, without exception.
 
 ### Éclaireur (`src/agents/eclaireur.py`)
 
-**Rôle** : interroger les sources, filtrer en amont, produire des `Finding` structurés.
+**Role**: query the sources, filter upstream, produce structured `Finding` objects.
 
-**Entrées** : `.md` projet (parsé en `ProjectModel` Pydantic).
+**Inputs**: project `.md` (parsed into a Pydantic `ProjectModel`).
 
-**Sortie** : `list[Finding]` (typiquement ~20 findings après filtrage).
+**Output**: `list[Finding]` (typically ~20 findings after filtering).
 
-**Étapes internes** :
-1. Génère des requêtes ciblées dérivées des composants et objectifs actifs de la fiche.
-2. Appelle les sources actives via la couche `src/sources/`.
-3. Applique le **filtre déterministe en amont** : alignement composants/objectifs, fraîcheur, score communautaire minimum, déduplication par hash.
-4. Pour chaque finding survivant, demande au LLM un résumé structuré au format `Finding`.
-5. Filtre les findings déjà vus (mode incrémental, lecture de `~/.applied-fox/state/[projet]_seen.json`).
+**Internal steps**:
+1. Generates targeted queries derived from the sheet's active components and objectives.
+2. Calls the active sources via the `src/sources/` layer.
+3. Applies the **deterministic upstream filter**: component/objective alignment, freshness, minimum community score, hash-based deduplication.
+4. For each surviving finding, asks the LLM for a structured summary in the `Finding` format.
+5. Filters out findings already seen (incremental mode, reading `~/.applied-fox/state/[projet]_seen.json`).
 
-**Outils** : couche Sources, cache `requests-cache`.
+**Tools**: Sources layer, `requests-cache`.
 
 ### Intégrateur (`src/agents/integrateur.py`)
 
-**Rôle** : pour chaque finding, dire s'il est intégrable et à quel coût.
+**Role**: for each finding, state whether it can be integrated and at what cost.
 
-**Entrées** : `.md` projet + un `Finding`.
+**Inputs**: project `.md` + a `Finding`.
 
-**Sortie** : `IntegrationVerdict` (intégrable ou non, niveau d'effort, changements requis, risques).
+**Output**: `IntegrationVerdict` (integrable or not, effort level, required changes, risks).
 
-**Étapes internes** :
-1. Construit un prompt qui rappelle le projet et la stack actuelle.
-2. Présente le finding et demande au LLM d'évaluer la faisabilité d'intégration.
-3. Le LLM produit un raisonnement structuré, parsé en `IntegrationVerdict`.
-4. Le rationale en clair est sauvegardé dans `02_integrateur_reasoning.md`.
+**Internal steps**:
+1. Builds a prompt that recalls the project and the current stack.
+2. Presents the finding and asks the LLM to assess integration feasibility.
+3. The LLM produces structured reasoning, parsed into an `IntegrationVerdict`.
+4. The plain-text rationale is saved to `02_integrateur_reasoning.md`.
 
-**Outils** : aucun outil externe au MVP (pas de fetch datasheet, pas de recherche communautaire — features V2). Le module dispose des informations contenues dans le `Finding` et le `.md`.
+**Tools**: no external tools in the MVP (no datasheet fetching, no community search — V2 features). The module works with the information contained in the `Finding` and the `.md`.
 
 ### Juge (`src/agents/juge.py`)
 
-**Rôle** : trancher la pertinence en croisant le verdict d'intégrabilité et le gain réel pour les objectifs actifs.
+**Role**: decide on relevance by cross-referencing the integrability verdict and the real gain for the active objectives.
 
-**Entrées** : `.md` projet + `Finding` + `IntegrationVerdict`.
+**Inputs**: project `.md` + `Finding` + `IntegrationVerdict`.
 
-**Sortie** : `JudgeVerdict` (pertinence, gain résumé, timing recommandé).
+**Output**: `JudgeVerdict` (relevance, summarized gain, recommended timing).
 
-**Logique** :
-- Si l'Intégrateur a renvoyé `integrable=False`, le Juge n'est pas appelé (court-circuit dans le graphe LangGraph) — le finding va directement vers la section "Rejetés" du rapport.
-- Sinon, le Juge évalue le gain net (intérêt - effort - risques) à la lumière des objectifs actifs et du timing du projet (phase, prochain rendu).
-- Aucun outil externe.
+**Logic**:
+- If the Intégrateur returned `integrable=False`, the Juge is not called (short-circuit in the LangGraph graph) — the finding goes directly to the "Rejected" section of the report.
+- Otherwise, the Juge evaluates the net gain (interest - effort - risks) in light of the active objectives and the project timing (phase, next deliverable).
+- No external tools.
 
 ### Rapporteur (`src/agents/rapporteur.py`)
 
-**Rôle** : produire le rapport `.md` final + les objets `ValidatedSuggestion` exploitables.
+**Role**: produce the final `.md` report + the actionable `ValidatedSuggestion` objects.
 
-**Entrées** : `list[Finding]` + `dict[finding_id, IntegrationVerdict]` + `dict[finding_id, JudgeVerdict]`.
+**Inputs**: `list[Finding]` + `dict[finding_id, IntegrationVerdict]` + `dict[finding_id, JudgeVerdict]`.
 
-**Sorties** :
-- Un `final_report.md` (rendu HTML pour le navigateur).
-- Une `list[ValidatedSuggestion]` pour chaque finding retenu (utilisée si l'utilisateur valide une suggestion).
+**Outputs**:
+- A `final_report.md` (rendered as HTML for the browser).
+- A `list[ValidatedSuggestion]` for each retained finding (used if the user validates a suggestion).
 
-**Format du rapport** : voir section dédiée plus bas.
+**Report format**: see the dedicated section below.
 
 ---
 
-## Schémas Pydantic principaux
+## Main Pydantic schemas
 
 ### Finding
 
@@ -268,7 +268,7 @@ class ValidatedSuggestion(BaseModel):
     open_questions: list[str]  # ce que l'Interviewer doit clarifier en mode integrate
 ```
 
-### TechWatchState (état partagé LangGraph)
+### TechWatchState (LangGraph shared state)
 
 ```python
 from typing import TypedDict
@@ -282,73 +282,73 @@ class TechWatchState(TypedDict):
     errors: list[str]
 ```
 
-L'état est mis à jour à chaque nœud du graphe. LangGraph gère la persistance et le branchement conditionnel (si un `Finding` n'est pas intégrable, on saute le Juge pour ce finding).
+The state is updated at each node of the graph. LangGraph handles persistence and conditional branching (if a `Finding` is not integrable, the Juge is skipped for that finding).
 
 ---
 
-## Flux de données complet
+## Complete data flow
 
-### 1. Lancement et chargement
+### 1. Launch and loading
 
-L'utilisateur lance `applied-fox run --project chemin/vers/projet.md`. La CLI :
-1. Charge la config globale `~/.applied-fox/config.yaml`.
-2. Charge le `.md` projet, le parse en `ProjectModel`, valide niveau 1+2 (sections + structure).
-3. Charge le state incrémental `~/.applied-fox/state/[projet]_seen.json` si existant.
-4. Initialise l'état `TechWatchState`.
+The user runs `applied-fox run --project chemin/vers/projet.md`. The CLI:
+1. Loads the global config `~/.applied-fox/config.yaml`.
+2. Loads the project `.md`, parses it into a `ProjectModel`, validates levels 1+2 (sections + structure).
+3. Loads the incremental state `~/.applied-fox/state/[projet]_seen.json` if it exists.
+4. Initializes the `TechWatchState` state.
 
-### 2. Étape Éclaireur
+### 2. Éclaireur step
 
-1. Génère des requêtes pour chaque source active.
-2. Interroge les sources, en passant par le cache `requests-cache` (TTL différenciés).
-3. Applique le filtre déterministe : composants/objectifs alignés, fraîcheur, scores, déduplication par hash, exclusion des findings déjà vus.
-4. Pour chaque finding survivant, appelle le LLM pour produire un `Finding` structuré (JSON Pydantic, retry sur erreur).
-5. Sauvegarde `01_eclaireur_findings.json` et `01_eclaireur_sources.json` (ce dernier contient aussi les findings filtrés en amont, pour audit).
+1. Generates queries for each active source.
+2. Queries the sources, going through the `requests-cache` (per-source TTLs).
+3. Applies the deterministic filter: aligned components/objectives, freshness, scores, hash-based deduplication, exclusion of findings already seen.
+4. For each surviving finding, calls the LLM to produce a structured `Finding` (Pydantic JSON, retry on error).
+5. Saves `01_eclaireur_findings.json` and `01_eclaireur_sources.json` (the latter also contains the findings filtered upstream, for audit purposes).
 
-### 3. Étape Intégrateur (parallélisable par finding)
+### 3. Intégrateur step (parallelizable per finding)
 
-Pour chaque `Finding` :
-1. Appelle le LLM avec `.md` + finding.
-2. Parse en `IntegrationVerdict`.
-3. Sauvegarde `02_integrateur_verdicts.json` (un fichier global) et appende le rationale au `02_integrateur_reasoning.md`.
+For each `Finding`:
+1. Calls the LLM with the `.md` + finding.
+2. Parses into an `IntegrationVerdict`.
+3. Saves `02_integrateur_verdicts.json` (one global file) and appends the rationale to `02_integrateur_reasoning.md`.
 
-### 4. Branchement conditionnel
+### 4. Conditional branching
 
-Si `IntegrationVerdict.integrable == False` : le finding est marqué pour la section "Rejetés", on saute le Juge.
+If `IntegrationVerdict.integrable == False`: the finding is marked for the "Rejected" section, and the Juge is skipped.
 
-### 5. Étape Juge (parallélisable par finding intégrable)
+### 5. Juge step (parallelizable per integrable finding)
 
-Pour chaque finding intégrable :
-1. Appelle le LLM avec `.md` + finding + verdict d'intégration.
-2. Parse en `JudgeVerdict`.
-3. Sauvegarde `03_juge_verdicts.json` et `03_juge_reasoning.md`.
+For each integrable finding:
+1. Calls the LLM with the `.md` + finding + integration verdict.
+2. Parses into a `JudgeVerdict`.
+3. Saves `03_juge_verdicts.json` and `03_juge_reasoning.md`.
 
-### 6. Étape Rapporteur
+### 6. Rapporteur step
 
-1. Croise les `JudgeVerdict` et trie par `relevance` puis `timing_recommendation`.
-2. Génère le rapport `04_final_report.md`.
-3. Convertit en HTML via `markdown2` ou `mistune` + template simple.
-4. Produit la `list[ValidatedSuggestion]` pour les findings retenus (`relevance != reject`).
+1. Cross-references the `JudgeVerdict` objects and sorts by `relevance` then `timing_recommendation`.
+2. Generates the `04_final_report.md` report.
+3. Converts to HTML via `markdown2` or `mistune` + a simple template.
+4. Produces the `list[ValidatedSuggestion]` for the retained findings (`relevance != reject`).
 
-### 7. Présentation et validation
+### 7. Presentation and validation
 
-1. Ouverture automatique du HTML dans le navigateur par défaut.
-2. TUI Rich prompte : `Valider rapport (Y/N)`.
-3. Si `Y` : itère sur chaque suggestion une par une, lance l'Interviewer en mode `integrate` avec la `ValidatedSuggestion`.
-4. L'Interviewer dialogue pour clarifier les `open_questions`, modifie le `.md`.
-5. Le `.md` modifié repasse les trois couches de validation.
-6. Si validé, le `.md` est sauvegardé, une ligne est appendée à la section "Changements".
-7. Sauvegarde `05_validated_suggestions.json` et le diff dans `06_md_diffs/`.
+1. Automatic opening of the HTML in the default browser.
+2. Rich TUI prompts: `Valider rapport (Y/N)`.
+3. If `Y`: iterates over each suggestion one by one, launches the Interviewer in `integrate` mode with the `ValidatedSuggestion`.
+4. The Interviewer dialogues to clarify the `open_questions`, modifies the `.md`.
+5. The modified `.md` goes through the three validation layers again.
+6. If validated, the `.md` is saved, and a line is appended to the "Changes" section.
+7. Saves `05_validated_suggestions.json` and the diff in `06_md_diffs/`.
 
-### 8. Fin de run
+### 8. End of run
 
-Mise à jour de `~/.applied-fox/state/[projet]_seen.json` (hashs des findings présentés ce run).
-Sauvegarde des métadonnées (durée, tokens, erreurs) dans `metadata.json`.
+Update of `~/.applied-fox/state/[projet]_seen.json` (hashes of the findings presented this run).
+Saving of the metadata (duration, tokens, errors) in `metadata.json`.
 
 ---
 
-## Système de validation à 3 couches
+## 3-layer validation system
 
-Appliqué symétriquement à la création initiale du `.md` ET à toute modification ultérieure (mode `integrate`).
+Applied symmetrically to the initial creation of the `.md` AND to any subsequent modification (`integrate` mode).
 
 ```mermaid
 flowchart LR
@@ -361,24 +361,24 @@ flowchart LR
     L3 -->|pass| Out[.md validé écrit sur disque]
 ```
 
-**Couche 1 — Validation déterministe** (`src/validation/structural.py`) :
-- Niveau 1 : sections obligatoires présentes.
-- Niveau 2 : structure interne (colonnes des tables, valeurs énumérées, formats de date).
-- Niveau 3 : cohérence sémantique interne (composants référencés dans Interactions existent dans la table Composants, dates cohérentes avec la phase).
+**Layer 1 — Deterministic validation** (`src/validation/structural.py`):
+- Level 1: mandatory sections present.
+- Level 2: internal structure (table columns, enumerated values, date formats).
+- Level 3: internal semantic consistency (components referenced in Interactions exist in the Components table, dates consistent with the phase).
 
-**Couche 2 — Test de transmission par LLM** (`src/validation/transmission.py`) :
-- Un appel LLM dédié, *sans* contexte de la conversation.
-- Prompt : "Voici un fichier .md décrivant un projet. Résume en clair ce que tu comprends du projet."
-- Le résumé est confronté à des questions de contrôle (présence des composants clés, des objectifs, etc.).
-- Si le résumé montre que le `.md` n'est pas autonome, on retourne en Interview.
+**Layer 2 — LLM transmission test** (`src/validation/transmission.py`):
+- A dedicated LLM call, *without* the conversation context.
+- Prompt: "Here is a .md file describing a project. Summarize in plain language what you understand about the project."
+- The summary is checked against control questions (presence of the key components, objectives, etc.).
+- If the summary shows that the `.md` is not self-contained, the process returns to the Interview.
 
-**Couche 3 — Validation humaine** (`src/validation/human.py`) :
-- TUI Rich affiche un récap structuré du `.md`.
-- L'utilisateur valide, demande modification, ou annule.
+**Layer 3 — Human validation** (`src/validation/human.py`):
+- Rich TUI displays a structured recap of the `.md`.
+- The user validates, requests a modification, or cancels.
 
 ---
 
-## Structure de fichiers `~/.applied-fox/`
+## File structure of `~/.applied-fox/`
 
 ```
 ~/.applied-fox/
@@ -398,7 +398,7 @@ flowchart LR
 └── config.yaml                       # config globale
 ```
 
-## Structure d'un dossier de run
+## Structure of a run folder
 
 ```
 ~/.applied-fox/runs/20260601-1430_esp32_weather_station/
@@ -419,13 +419,13 @@ flowchart LR
 └── metadata.json                     # durées, tokens consommés, erreurs, version modèles
 ```
 
-Cette structure rend chaque run **auditable bout en bout**. Un dev externe (ou l'utilisateur lui-même six mois plus tard) peut comprendre exactement pourquoi telle suggestion a été produite.
+This structure makes every run **auditable end to end**. An external dev (or the user themselves six months later) can understand exactly why a given suggestion was produced.
 
 ---
 
-## Format du rapport final
+## Final report format
 
-Le rapport est généré par le Rapporteur en Markdown, puis converti en HTML pour le navigateur.
+The report is generated by the Rapporteur in Markdown, then converted to HTML for the browser.
 
 ```markdown
 # Rapport de veille — [Nom du projet]
@@ -468,35 +468,35 @@ Le rapport est généré par le Rapporteur en Markdown, puis converti en HTML po
 *Détails du run : [chemin vers le dossier runs/...]*
 ```
 
-**Pas de section feedback au MVP** (cf. [DECISIONS.md §12](DECISIONS.md)).
+**No feedback section in the MVP** (see [DECISIONS.md §12](DECISIONS.md)).
 
 ---
 
-## Configuration et profile machine
+## Configuration and machine profile
 
-La config globale `~/.applied-fox/config.yaml` définit :
-- Le **profile machine** (`small` / `medium` / `large`).
-- Les **modèles** par rôle (interviewer local 7B au MVP, autres rôles selon profile).
-- Les **sources actives** et leurs paramètres (clés via variables d'environnement, TTL cache, filtres).
-- Le **mode provider** (`local` au MVP).
+The global config `~/.applied-fox/config.yaml` defines:
+- The **machine profile** (`small` / `medium` / `large`).
+- The **models** per role (local 7B interviewer in the MVP, other roles depending on the profile).
+- The **active sources** and their parameters (keys via environment variables, cache TTL, filters).
+- The **provider mode** (`local` in the MVP).
 
-Spec complète : [`CONFIG_SCHEMA.md`](CONFIG_SCHEMA.md).
-
----
-
-## Hot-swap : test de bascule
-
-Pour valider l'abstraction `get_llm()`, un test explicite est inscrit dans la roadmap (Jalon 5) :
-> Bascule du modèle Ollama 7B vers 14B (changement de profile machine) sans modification de code, en moins de 5 minutes.
-
-Ce test garantit que la couche d'abstraction est réelle, pas cosmétique.
+Full spec: [`CONFIG_SCHEMA.md`](CONFIG_SCHEMA.md).
 
 ---
 
-## Observabilité (optionnelle, dev uniquement)
+## Hot-swap: switch test
 
-LangFuse self-hosted (Docker) recommandé pour développer. Permet de visualiser : prompts envoyés, latences, tokens consommés, erreurs de parsing, retries.
+To validate the `get_llm()` abstraction, an explicit test is written into the roadmap (Milestone 5):
+> Switch from the Ollama 7B model to 14B (machine profile change) without any code modification, in under 5 minutes.
 
-Alternative : LangSmith hébergé pour usage perso (gratuit jusqu'à un certain volume).
+This test guarantees that the abstraction layer is real, not cosmetic.
 
-L'utilisateur final n'a besoin ni de l'un ni de l'autre — c'est strictement un outil de dev. Aucune dépendance dure dans le code.
+---
+
+## Observability (optional, dev only)
+
+Self-hosted LangFuse (Docker) recommended for development. Allows visualizing: prompts sent, latencies, tokens consumed, parsing errors, retries.
+
+Alternative: hosted LangSmith for personal use (free up to a certain volume).
+
+The end user needs neither — it is strictly a dev tool. No hard dependency in the code.
