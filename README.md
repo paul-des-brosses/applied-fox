@@ -2,16 +2,17 @@
 
 > *The R&D assistant that never leaves your machine, and never decides for you.*
 
-**Status: MVP shipped. Milestones 1 through 8 + post-MVP v1.5 (deterministic Judge filters).**
+**Status: MVP shipped. Milestones 1 through 8 + post-MVP v1.5 (deterministic Judge filters).** Current state and next steps: [`STATUS.md`](STATUS.md).
 
 A local multi-agent technology watch system for engineering projects.
 Everything runs locally via Ollama. No project data ever leaves your machine,
 and no agent modifies a project file without explicit human validation.
 
-> *(This README is in English for a wider reach. A French version is preserved
-> for reference in the contributor's portfolio archive. Internal documentation
-> in `docs/` is in French — design decisions, roadmap, and evaluation reports
-> are written for an audit-friendly read-through.)*
+> *(This README is in English for a wider reach. Core technical docs —
+> [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) and
+> [`docs/DECISIONS.md`](docs/DECISIONS.md) — are in English too. The rest of
+> `docs/` (roadmap, evaluation reports, schemas) is in French for now, kept
+> as the original technical archive.)*
 
 ---
 
@@ -33,8 +34,8 @@ No cloud, no SaaS, no subscription. Your technical plans stay yours.
 ## Quickstart (5 min)
 
 ```bash
-git clone https://github.com/paul-des-brosses/applied-fox-agent-ia
-cd applied-fox-agent-ia
+git clone https://github.com/paul-des-brosses/applied-fox
+cd applied-fox
 bash setup.sh                  # venv + dependencies + Ollama check + model pull
 source .venv/bin/activate      # Windows: .venv\Scripts\activate
 pip install -e .
@@ -100,7 +101,7 @@ exactly which and why. The Judge never sees findings rejected by the
 Integrator, which avoids noise and saves LLM calls. This is the classic
 "small focused prompt > big catch-all prompt" pattern.
 
-Full details: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) (FR).
+Full details: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ## What works today (MVP — Milestone 8 + post-MVP v1.5)
 
@@ -164,7 +165,7 @@ ollama pull qwen3:8B
 Total disk: ~10 GB.
 
 The Interview module **always** runs on local 7B
-(fundamental constraint, see [`docs/DECISIONS.md`](docs/DECISIONS.md) — FR).
+(fundamental constraint, see [`docs/DECISIONS.md`](docs/DECISIONS.md)).
 
 **To adapt to other hardware** (CPU only, larger GPU, etc.):
 see [`docs/HARDWARE.md`](docs/HARDWARE.md) (FR).
@@ -183,8 +184,8 @@ deterministic filters that short-circuit ~70 % of LLM calls in pre-processing.
 - **Detailed install** → [`GETTING_STARTED.md`](GETTING_STARTED.md)
 - **Hardware & models** → [`docs/HARDWARE.md`](docs/HARDWARE.md) (FR)
 - **Vision and rationale** → [`docs/VISION.md`](docs/VISION.md)
-- **Technical architecture** → [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) (FR)
-- **Design decisions** → [`docs/DECISIONS.md`](docs/DECISIONS.md) (FR)
+- **Technical architecture** → [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
+- **Design decisions** → [`docs/DECISIONS.md`](docs/DECISIONS.md)
 - **MVP roadmap** → [`docs/ROADMAP_MVP.md`](docs/ROADMAP_MVP.md) (FR)
 - **Post-MVP backlog** → [`docs/BACKLOG.md`](docs/BACKLOG.md) (FR)
 - **Project file format** → [`docs/MD_SCHEMA.md`](docs/MD_SCHEMA.md) (FR)
@@ -192,8 +193,9 @@ deterministic filters that short-circuit ~70 % of LLM calls in pre-processing.
 - **Glossary** → [`docs/GLOSSARY.md`](docs/GLOSSARY.md) (FR)
 - **Per-milestone evaluations** → [`docs/evaluations/`](docs/evaluations/) (FR)
 
-> French docs are kept as the original technical archive. Public-facing
-> README, GETTING_STARTED, DEMO, and VISION are in English.
+> Remaining French docs are kept as the original technical archive.
+> Public-facing README, GETTING_STARTED, DEMO, VISION, plus ARCHITECTURE
+> and DECISIONS, are in English.
 
 ## Philosophy — four non-negotiable constraints
 
@@ -219,6 +221,17 @@ deterministic filters that short-circuit ~70 % of LLM calls in pre-processing.
 - **Sources**: Reddit JSON endpoints, feedparser, PyGithub
 - **Rendering**: mistune (Markdown → HTML)
 - Python ≥ 3.11
+
+## Author
+
+Paul Des Brosses — M1 Creative Technology student, ESILV (Paris)
+GitHub: https://github.com/paul-des-brosses · LinkedIn: https://www.linkedin.com/in/paul-des-brosses/
+
+This repository is part of a public portfolio at the intersection of hardware, software and applied AI. Other projects:
+
+- [Forest of Senses](https://github.com/paul-des-brosses/forest-of-senses) — zero-instruction motor adaptation environment for post-stroke rehabilitation research
+- [Bocage Digital Twin](https://github.com/paul-des-brosses/bocage-digital-twin) — instrumented digital twin of a Norman bocage countryside (Unity 6 WebGL)
+- [Lightning TDOA Simulator](https://github.com/paul-des-brosses/lightning-tdoa-simulator) — simulation of a 3-station VLF lightning detection network
 
 ## License and status
 
