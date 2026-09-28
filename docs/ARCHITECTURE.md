@@ -90,6 +90,10 @@ flowchart TD
     GetLLM -.V2.-> APIv2
 ```
 
+![Main architecture diagram](media/architecture.png)
+
+*Rendered from the Mermaid source above (`docs/media/architecture.png`).*
+
 ---
 
 ## Separation into three layers

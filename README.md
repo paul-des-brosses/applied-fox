@@ -53,6 +53,29 @@ The menu guides you:
 Install details: [`GETTING_STARTED.md`](GETTING_STARTED.md).
 Step-by-step demo: [`DEMO.md`](DEMO.md).
 
+## What it looks like
+
+The multi-project menu — run a watch cycle, browse past runs, validate or
+integrate the suggestions of the last run:
+
+![The Applied Fox multi-project menu](docs/media/menu.png)
+
+The validation loop is the heart of the human-in-the-loop design: every
+suggestion is shown one at a time, with its impact, risks and open questions.
+You accept, reject or defer it — nothing is written without your go-ahead.
+
+![Validation TUI — one suggestion at a time](docs/media/validation.png)
+
+At the end of a cycle the Reporter writes a self-contained HTML report: a
+one-line synthesis, prioritized suggestions (gain, effort, risks), and an
+audit trail of what was rejected and which sources were consulted.
+
+<p align="center"><img src="docs/media/report.png" width="520" alt="Generated HTML watch report"></p>
+
+> Screens are captured from the real UI, on a sample project (a DIY
+> lightning-detection station). The report is an illustrative run, not a
+> benchmark result.
+
 ## Why this project exists
 
 AI tools for engineers suffer from two unacceptable defects: they send your
@@ -94,6 +117,8 @@ and the long-term vision are in [`docs/VISION.md`](docs/VISION.md).
               │ 3-layer validation        │
               └───────────────────────────┘
 ```
+
+![Applied Fox architecture — Interview module, 4-agent LangGraph pipeline, sources and providers](docs/media/architecture.png)
 
 **Why 4 agents and not one big prompt?**
 Every agent has a strict Pydantic contract on output. If one fails, we know
